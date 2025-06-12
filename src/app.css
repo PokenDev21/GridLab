@@ -1,85 +1,17 @@
-@import 'tailwindcss';
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
 
-/* Modern, clean defaults */
-@layer base {
-  :root {
-    /* Better font defaults */
-    font-family:,
-      Roboto;
-    font-weight: 500;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    background-color: theme('colors.gray.950');
-    /* Smooth scrolling for modern browsers */
-    scroll-behavior: smooth;
-  }
-
-  /* Better link defaults */
-  a {
-    color: theme('colors.indigo.500');
-    text-decoration-thickness: 1px;
-    text-underline-offset: 2px;
-    transition: all 0.2s ease;
-  }
-  /* Custom button style you can apply with .btn-custom */
-  /* General interactive element styles */
-  button, 
-  [type="button"],
-  [type="reset"],
-  [type="submit"] {
-    cursor: pointer;
-    outline: none;
-  }
-
-  /* Custom button style */
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    padding: 0.625rem 1.25rem;
-    border-radius: 0.375rem;
-    background-color: theme('colors.indigo.600');
-    transition: all 0.15s ease;
-    border: none;
-    line-height: 1.25;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-    
-    &:hover {
-      background-color: theme('colors.indigo.700');
-      transform: translateY(-1px);
-    }
-    
-    &:focus {
-      ring: 2px theme('colors.indigo.500');
-    }
-    
-    &:active {
-      background-color: theme('colors.indigo.800');
-      transform: translateY(0);
-    }
-    
-    &:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-  }
-
-  a:hover {
-    color: theme('colors.indigo.700');
-  }
-
-  /* Better focus outlines */
-  :focus-visible {
-    outline: 2px solid theme('colors.indigo.500');
-    outline-offset: 2px;
-  }
+:root {
+  font-weight: 500;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
 }
 
-/* Optional: Add custom utilities */
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+@layer base {
+  body {
+    @apply text-gray-900;
   }
 }
