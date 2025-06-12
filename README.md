@@ -19,3 +19,12 @@ Built with a Rust backend and Svelte frontend.
 ```bash
 npm install
 npm run tauri dev
+```
+
+## Current Design Language
+
+Grid Lab follows a clean, minimal design with a white background and black text.  
+Accent colors are used subtly through animated blobs:
+
+![Screenshot 2025-06-12 151909](https://github.com/user-attachments/assets/c5a13432-1113-46a4-987f-8c010bfd9dc0)
+
