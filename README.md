@@ -17,6 +17,7 @@ Version format: `MAJOR.MINOR.PATCH`
 ## To Do List
 - [ ] Resize windows in real-time  
 - [ ] Save/load multiple environments
+- [ ] Main menu should hide away after selecting environment replaced by floating menu
 
 ## Tech Stack
 - 🦀 Rust (Tauri backend)
@@ -29,10 +30,9 @@ npm install
 npm run tauri dev
 ```
 
-## Current Design Language
+## Known issues
+### Bad scaling in main menu
 
-Grid Lab follows a clean, minimal design with a white background and black text.  
-Accent colors are used subtly through animated blobs:
+<img src="https://github.com/user-attachments/assets/c26120ef-5873-4426-ba25-99eb2b24bf37" width="100" height="100" />
 
-![Screenshot 2025-06-12 151909](https://github.com/user-attachments/assets/c5a13432-1113-46a4-987f-8c010bfd9dc0)
 
