@@ -52,6 +52,7 @@
       <div class="z-10">
         <h1 class="text-5xl font-bold text-white">Grid Lab</h1>
         <h2 class="mt-3 text-xl text-white">Select an environment from the left to begin</h2>
+        <button class="w-30 h-10 p-4">Call Rust function</button>
       </div>
     </div>
   </div>

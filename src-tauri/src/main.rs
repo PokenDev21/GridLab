@@ -2,11 +2,16 @@
 
 use tauri::{LogicalPosition, LogicalSize, WebviewUrl};
 
+#[tauri::command]
+fn my_custom_command() {
+  println!("I was invoked from JS!");
+}
+
 fn main() {
   tauri::Builder::default()
     .setup(|app| {
-      let width = 800.;
-      let height = 600.;
+      let width = 1920.;
+      let height = 1080.;
 
       let window = tauri::window::WindowBuilder::new(app, "custom_main")
         .inner_size(width, height)
@@ -53,6 +58,7 @@ fn main() {
 
       Ok(())
     })
+    .invoke_handler(tauri::generate_handler![my_custom_command])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }

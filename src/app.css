@@ -11,7 +11,9 @@
 }
 
 @layer base {
-  body {
-    @apply text-gray-900;
+  button {
+    border: none;
+    outline: none;
+    cursor: pointer;
   }
 }
