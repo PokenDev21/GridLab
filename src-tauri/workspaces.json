@@ -1,0 +1,44 @@
+{
+  "Swedish Layout": {
+    "main1": {
+      "url": null
+    },
+    "main2": {
+      "url": "https://app.haldor.se/"
+    },
+    "main3": {
+      "url": "https://www.microsoft.com/sv-se/microsoft-teams/log-in?market=se"
+    },
+    "main4": {
+      "url": "https://svenska.se/"
+    }
+  },
+  "Math Layout": {
+    "main1": {
+      "url": null
+    },
+    "main2": {
+      "url": "https://nokportalen.se/"
+    },
+    "main3": {
+      "url": "https://www.onenote.com/?public=1&wdorigin=ondcauth2&wdorigin=ondc"
+    },
+    "main4": {
+      "url": "https://www.microsoft.com/sv-se/microsoft-teams/log-in?market=se"
+    }
+  },
+  "Programming Layout": {
+    "main1": {
+      "url": null
+    },
+    "main2": {
+      "url": "https://github.com/"
+    },
+    "main3": {
+      "url": "https://chatgpt.com/"
+    },
+    "main4": {
+      "url": "https://www.w3schools.com/"
+    }
+  }
+}

@@ -1,9 +1,18 @@
 <script lang="ts">
   import Sidebar from './lib/Sidebar.svelte';
   import { writable } from 'svelte/store';
+  import { invoke } from '@tauri-apps/api/core';
+  import { onMount } from 'svelte';
   const isExpanded = writable(false);
   let blur = '6rem';
-  function openWorkspace() {}
+  async function openWorkspace(layoutName: string) {
+    try {
+      await invoke('load_workspace', { layoutName });
+      console.log(`Loaded workspace: ${layoutName}`);
+    } catch (error) {
+      console.error('Failed to load workspace:', error);
+    }
+  }
 </script>
 
 <div class="relative flex h-full w-full overflow-hidden">
@@ -52,7 +61,6 @@
       <div class="z-10">
         <h1 class="text-5xl font-bold text-white">Grid Lab</h1>
         <h2 class="mt-3 text-xl text-white">Select an environment from the left to begin</h2>
-        <button class="w-30 h-10 p-4">Call Rust function</button>
       </div>
     </div>
   </div>

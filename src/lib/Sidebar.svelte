@@ -9,8 +9,8 @@
     ? 'w-72'
     : 'w-16'} h-full"
 >
-  {#each ['Swedish Layout', 'English Layout', 'Custom Layout'] as layout}
-    <button class="flex h-10 w-full items-center on:click={CreateWorkspacefunc}">
+  {#each ['Swedish Layout', 'Math Layout', 'Programming Layout'] as layout}
+    <button class="flex h-10 w-full items-center" on:click={() => CreateWorkspacefunc(layout)}>
       <LayoutDashboard size="24" class="mx-4" />
       <div class="overflow-hidden {isExpanded ? 'w-auto' : 'w-auto'}">
         <div class="whitespace-nowrap text-[1rem]">{layout}</div>
