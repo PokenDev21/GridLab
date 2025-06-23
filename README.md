@@ -16,8 +16,6 @@ Version format: `MAJOR.MINOR.PATCH`
   
 ## To Do List
 - [ ] Resize windows in real-time  
-- [ ] Save/load multiple environments
-- [ ] Main menu should hide away after selecting environment replaced by floating menu
 
 ## Tech Stack
 - 🦀 Rust (Tauri backend)
@@ -29,10 +27,4 @@ Version format: `MAJOR.MINOR.PATCH`
 npm install
 npm run tauri dev
 ```
-
-## Known issues
-### Bad scaling in main menu
-
-<img src="https://github.com/user-attachments/assets/c26120ef-5873-4426-ba25-99eb2b24bf37" width="100" height="100" />
-
 
