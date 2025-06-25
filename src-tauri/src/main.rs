@@ -7,162 +7,254 @@ use tauri::{
 use serde_json::{Map, Value};
 use std::{
     collections::HashMap,
-    fs,
-    panic::{catch_unwind, AssertUnwindSafe},
+    path::PathBuf,  // Add this import
     thread,
 };
-// ... (const OUTER_WINDOW, PANE_LABELS, read_workspace remain the same) ...
+
 const OUTER_WINDOW: &str = "custom_main";
 const PANE_LABELS: [&str; 4] = ["main1", "main2", "main3", "main4"];
 
-fn apply_quadrant_layout(window: &Window, half_w: f64, half_h: f64) {
+use std::sync::Mutex;
+
+struct AppState {
+    sidebar_width: f64,
+    is_fullscreen: bool,
+}
+
+impl Default for AppState {
+    fn default() -> Self {
+        Self {
+            sidebar_width: 64.0,
+            is_fullscreen: false,
+        }
+    }
+}
+
+static APP_STATE: once_cell::sync::Lazy<Mutex<AppState>> = once_cell::sync::Lazy::new(|| {
+    Mutex::new(AppState::default())
+});
+fn get_workspaces_path() -> Result<PathBuf, String> {
+    // Always use current directory (where the exe is, or project root in dev)
+    let current_dir = std::env::current_dir()
+        .map_err(|e| format!("Failed to get current directory: {}", e))?;
+    
+    let json_path = current_dir.join("workspaces.json");
+    
+    // Create default file if it doesn't exist
+    if !json_path.exists() {
+        let default_workspaces = serde_json::json!({
+            "Math Layout": {
+                "main1": { "url": "https://app.haldor.se/" },
+                "main2": { "url": "https://nokportalen.se/" },
+                "main3": { "url": "https://www.onenote.com/?public=1&wdorigin=ondcauth2&wdorigin=ondc" },
+                "main4": { "url": "https://www.microsoft.com/sv-se/microsoft-teams/log-in?market=se" }
+            },
+            "Programming Layout": {
+                "main1": { "url": "https://app.haldor.se/" },
+                "main2": { "url": "https://github.com/" },
+                "main3": { "url": "https://chatgpt.com/" },
+                "main4": { "url": "https://www.w3schools.com/" }
+            },
+            "Swedish Layout": {
+                "main1": { "url": "https://word.cloud.microsoft/en-us/" },
+                "main2": { "url": "https://app.haldor.se/" },
+                "main3": { "url": "https://teams.microsoft.com/v2/" },
+                "main4": { "url": "https://svenska.se/" }
+            }
+        });
+        
+        let json_string = serde_json::to_string_pretty(&default_workspaces)
+            .map_err(|e| format!("serialize default workspaces: {}", e))?;
+        std::fs::write(&json_path, json_string)
+            .map_err(|e| format!("write default workspaces: {}", e))?;
+        
+        println!("Created default workspaces.json at: {:?}", json_path);
+    }
+    
+    Ok(json_path)
+}
+
+#[tauri::command]
+async fn get_all_workspaces() -> Result<Value, String> {
+    let json_path = get_workspaces_path()?;
+    
+    let json = std::fs::read_to_string(&json_path)
+        .map_err(|e| format!("read {:?}: {}", json_path, e))?;
+    let all: Value = serde_json::from_str(&json)
+        .map_err(|e| format!("parse workspaces.json: {}", e))?;
+    Ok(all)
+}
+
+#[tauri::command]
+async fn save_workspace(name: String, config: Value) -> Result<(), String> {
+    let json_path = get_workspaces_path()?;
+    
+    // Read existing workspaces
+    let json = std::fs::read_to_string(&json_path)
+        .map_err(|e| format!("read {:?}: {}", json_path, e))?;
+    let mut all: Map<String, Value> = serde_json::from_str(&json)
+        .map_err(|e| format!("parse workspaces.json: {}", e))?;
+    
+    // Update or add the workspace
+    all.insert(name, config);
+    
+    // Write back to file
+    let json_string = serde_json::to_string_pretty(&all)
+        .map_err(|e| format!("serialize workspaces: {}", e))?;
+    std::fs::write(&json_path, json_string)
+        .map_err(|e| format!("write {:?}: {}", json_path, e))?;
+    
+    Ok(())
+}
+
+#[tauri::command]
+async fn delete_workspace(name: String) -> Result<(), String> {
+    let json_path = get_workspaces_path()?;
+    
+    // Read existing workspaces
+    let json = std::fs::read_to_string(&json_path)
+        .map_err(|e| format!("read {:?}: {}", json_path, e))?;
+    let mut all: Map<String, Value> = serde_json::from_str(&json)
+        .map_err(|e| format!("parse workspaces.json: {}", e))?;
+    
+    // Remove the workspace
+    all.remove(&name);
+    
+    // Write back to file
+    let json_string = serde_json::to_string_pretty(&all)
+        .map_err(|e| format!("serialize workspaces: {}", e))?;
+    std::fs::write(&json_path, json_string)
+        .map_err(|e| format!("write {:?}: {}", json_path, e))?;
+    
+    Ok(())
+}
+
+fn read_workspace(layout: &str) -> Result<Value, String> {
+    let json_path = get_workspaces_path()?;
+    let json = std::fs::read_to_string(&json_path)
+        .map_err(|e| format!("read {:?}: {}", json_path, e))?;
+    let all: Value = serde_json::from_str(&json)
+        .map_err(|e| format!("parse workspaces.json: {}", e))?;
+    all.get(layout)
+        .cloned()
+        .ok_or_else(|| format!("Workspace '{}' not found", layout))
+}
+
+
+#[tauri::command]
+async fn toggle_fullscreen(app: AppHandle, fullscreen: bool) -> Result<(), String> {
+    println!("Setting fullscreen value to, {}", fullscreen);
+    
+    // Update the fullscreen state
+    {
+        let mut state = APP_STATE.lock().unwrap();
+        state.is_fullscreen = fullscreen;
+    }
+    
+    if let Some(window) = app.get_window(OUTER_WINDOW) {
+        if fullscreen {
+            // FULLSCREEN MODE: Hide all quadrant panes by setting their size to 0
+            for &label in &PANE_LABELS {
+                if let Some(wv) = window.get_webview(label) {
+                    // "Hide" by setting to size 0x0 and moving off-screen
+                    let _ = wv.set_size(LogicalSize::new(0.0, 0.0));
+                    let _ = wv.set_position(LogicalPosition::new(-1000.0, -1000.0));
+                }
+            }
+            
+            // Then maximize the svelte_app webview
+            if let Some(svelte_webview) = window.get_webview("svelte_app") {
+                if let Ok(size) = window.inner_size() {
+                    let width = size.width as f64;
+                    let height = size.height as f64;
+                    let _ = svelte_webview.set_position(LogicalPosition::new(0.0, 0.0));
+                    let _ = svelte_webview.set_size(LogicalSize::new(width, height));
+                }
+            }
+        } else {
+            // NON-FULLSCREEN MODE: Restore and reposition all quadrant panes
+            if let Ok(size) = window.inner_size() {
+                let width = size.width as f64;
+                let height = size.height as f64;
+                
+                // Reset svelte_app to sidebar width
+                if let Some(svelte_webview) = window.get_webview("svelte_app") {
+                    let sidebar_width = APP_STATE.lock().unwrap().sidebar_width;
+                    let _ = svelte_webview.set_position(LogicalPosition::new(0.0, 0.0));
+                    let _ = svelte_webview.set_size(LogicalSize::new(sidebar_width, height));
+                }
+                
+                // Apply normal layout to quadrant panes
+                apply_quadrant_layout(&window, width, height);
+            }
+        }
+    }
+    
+    // Add a small delay to ensure UI is updated
+    std::thread::sleep(std::time::Duration::from_millis(50));
+    
+    Ok(())
+}
+#[tauri::command]
+async fn update_sidebar_width(app: AppHandle, width: f64) -> Result<(), String> {
+    let is_fullscreen;
+    {
+        println!("Updating width: {}", width);
+        let mut state = APP_STATE.lock().unwrap();
+        state.sidebar_width = width;
+        is_fullscreen = state.is_fullscreen;  // Get current fullscreen state
+    }
+    
+    // Only update layout if NOT in fullscreen mode
+    if !is_fullscreen {
+        if let Some(window) = app.get_window(OUTER_WINDOW) {
+            if let Ok(sz) = window.inner_size() {
+                let width = sz.width as f64;
+                let height = sz.height as f64;
+                
+                // Update svelte_app width
+                if let Some(svelte_webview) = window.get_webview("svelte_app") {
+                    let _ = svelte_webview.set_size(LogicalSize::new(width, height));
+                }
+                
+                apply_quadrant_layout(&window, width, height);
+            }
+        }
+    }
+    
+    Ok(())
+}
+fn apply_quadrant_layout(window: &Window, window_width: f64, window_height: f64) {
+    let sidebar_width = APP_STATE.lock().unwrap().sidebar_width;
+    
+    // Available space after sidebar
+    let content_width = window_width - sidebar_width;
+    let half_content_width = content_width / 2.0;
+    let half_height = window_height / 2.0;
+    
+    // Positions for the four quadrants - only cover the content area, not the sidebar
     let positions = [
-        (0.0,      0.0),
-        (half_w,   0.0),
-        (0.0,    half_h),
-        (half_w, half_h),
+        (sidebar_width,                      0.0),          // Top-left (starts after sidebar)
+        (sidebar_width + half_content_width, 0.0),          // Top-right
+        (sidebar_width,                      half_height),   // Bottom-left (starts after sidebar)
+        (sidebar_width + half_content_width, half_height),   // Bottom-right
     ];
+    
+    // Apply layout to ALL quadrant panes (main1, main2, main3, main4)
     for (idx, &label) in PANE_LABELS.iter().enumerate() {
         if let Some(wv) = window.get_webview(label) {
             let (x, y) = positions[idx];
             let _ = wv.set_position(LogicalPosition::new(x, y));
-            let _ = wv.set_size(LogicalSize::new(half_w, half_h));
+            let _ = wv.set_size(LogicalSize::new(half_content_width, half_height));
         }
     }
 }
 
-
-fn read_workspace(layout: &str) -> Result<Value, String> {
-    println!("Attempting to read workspaces.json for layout: {}", layout);
-    let current_dir = std::env::current_dir()
-        .map_err(|e| format!("Failed to get current directory: {}", e))
-        .unwrap_or_else(|e| {
-            println!("ERROR: {}", e);
-            std::path::PathBuf::new()
-        });
-    println!("Current directory: {:?}", current_dir);
-    let json_path = current_dir.join("workspaces.json"); // Ensure correct path
-    println!("Looking for workspaces.json at: {:?}", json_path);
-
-    let json_result = fs::read_to_string(&json_path); // Use json_path
-    if let Err(ref e) = json_result {
-        println!("ERROR reading workspaces.json: {}", e);
-        return Err(format!("read {:?}: {}", json_path, e));
-    }
-    let json = json_result.unwrap();
-    println!("Successfully read workspaces.json: {} bytes", json.len());
-    let all_result = serde_json::from_str::<Value>(&json);
-    if let Err(ref e) = all_result {
-        println!("ERROR parsing workspaces.json: {}", e);
-        println!("JSON content: {}", json);
-        return Err(format!("parse workspaces.json: {}", e));
-    }
-    let all = all_result.unwrap();
-    if let Some(workspace) = all.get(layout) {
-        println!("Found workspace '{}' in config", layout);
-        Ok(workspace.clone())
-    } else {
-        println!("ERROR: Workspace '{}' not found in config", layout);
-        println!("Available workspaces: {:?}",
-                 all.as_object().map(|o| o.keys().collect::<Vec<_>>()).unwrap_or_default());
-        Err(format!("Workspace '{}' not found", layout))
-    }
-}
-
-
-fn ensure_pane(
-  window: &Window,
-  label: &str,
-  pos: (f64, f64),
-  size: (f64, f64),
-  url: Option<&str>,
-) {
-  let url_str = url.unwrap_or("about:blank"); // Default to about:blank if no URL
-  println!("Ensuring pane '{}': URL='{}', Pos=({},{}), Size=({},{})",
-           label, url_str, pos.0, pos.1, size.0, size.1);
-
-  let parsed_url_result = url_str.parse::<url::Url>();
-  let parsed_url = match parsed_url_result {
-    Ok(u) => {
-      println!("   Successfully parsed URL for '{}': {}", label, u);
-      u
-    }
-    Err(e) => {
-      println!("   ERROR: Bad URL string for '{}': '{}'. Error: {}", label, url_str, e);
-      // Fallback to about:blank if parsing fails
-      "about:blank".parse::<url::Url>().unwrap()
-    }
-  };
-
-  if let Some(wv) = window.get_webview(label) {
-    println!("   Pane '{}' exists. Updating position, size, and navigating.", label);
-    if let Err(e) = wv.set_position(LogicalPosition::new(pos.0, pos.1)) {
-      println!("   ERROR set_position for '{}': {}", label, e);
-    }
-    if let Err(e) = wv.set_size(LogicalSize::new(size.0, size.1)) {
-      println!("   ERROR set_size for '{}': {}", label, e);
-    }
-    if let Err(e) = wv.navigate(parsed_url.clone()) { // Use parsed_url
-      println!("   ERROR navigate for '{}': {}", label, e);
-    } else {
-      println!("   ✅ Successfully navigated '{}' to {}", label, parsed_url);
-    }
-    // Ensure devtools are enabled if it exists
-    if !wv.is_devtools_open() { // Check if this method exists, might need feature
-        // wv.open_devtools(); // Or similar method if available
-        println!("   NOTE: Devtools can be manually opened for existing pane '{}'", label);
-    }
-
-  } else {
-    println!("   Pane '{}' does not exist. Creating new one.", label);
-    println!("   Attempting WebviewBuilder::new for '{}' with URL: {}", label, parsed_url);
-
-    // Catch potential panics during WebviewBuilder creation
-    let builder_result = catch_unwind(AssertUnwindSafe(|| {
-        WebviewBuilder::new(label, WebviewUrl::External(parsed_url.clone()))
-            .devtools(true)
-    }));
-
-    let builder = match builder_result {
-        Ok(b) => {
-            println!("   WebviewBuilder::new for '{}' SUCCEEDED.", label);
-            b
-        }
-        Err(panic_payload) => {
-            println!("   ❌ PANIC during WebviewBuilder::new for '{}'!", label);
-            if let Some(s) = panic_payload.downcast_ref::<String>() {
-                println!("      Panic payload: {}", s);
-            } else if let Some(s) = panic_payload.downcast_ref::<&str>() {
-                println!("      Panic payload: {}", s);
-            } else {
-                println!("      Panic payload: (unknown type)");
-            }
-            return; // Stop processing this pane
-        }
-    };
-
-    println!("   Attempting window.add_child for '{}'...", label);
-    match window.add_child(
-      builder,
-      LogicalPosition::new(pos.0, pos.1),
-      LogicalSize::new(size.0, size.1),
-    ) {
-      Ok(new_wv) => {
-        println!("   ✅ Successfully added child webview '{}'", label);
-        // new_wv.open_devtools(); // Optionally open devtools immediately if method exists
-      }
-      Err(e) => {
-        println!("   ❌ Failed to add child webview '{}': {}", label, e);
-      }
-    }
-  }
-}
 #[tauri::command]
 async fn load_workspace(app: AppHandle, layout_name: String) -> Result<(), String> {
-    let ws_json = read_workspace(&layout_name)?;
+    let ws_json = read_workspace(&layout_name)?;  
     let pane_cfg: Map<String, Value> = ws_json.as_object().cloned().unwrap_or_default();
 
-    // make URLs easy to look up in the spawned thread
     let pane_urls: HashMap<&'static str, Option<String>> = PANE_LABELS
         .iter()
         .map(|&lbl| {
@@ -175,6 +267,9 @@ async fn load_workspace(app: AppHandle, layout_name: String) -> Result<(), Strin
         })
         .collect();
 
+    // Get current fullscreen state
+    let is_fullscreen = APP_STATE.lock().unwrap().is_fullscreen;
+
     thread::spawn(move || {
         let window = match app.get_window(OUTER_WINDOW) {
             Some(w) => w,
@@ -184,19 +279,23 @@ async fn load_workspace(app: AppHandle, layout_name: String) -> Result<(), Strin
             }
         };
 
-        // --- create missing panes & navigate existing ones -----------
+        // Handle ALL quadrant panes (main1, main2, main3, main4)
         for &label in &PANE_LABELS {
             match window.get_webview(label) {
                 Some(wv) => {
+                    // If webview exists, navigate to new URL
                     if let Some(Some(ref url)) = pane_urls.get(label) {
                         let _ = wv.navigate(url.parse().unwrap());
                     }
+                    
+                    // If in fullscreen mode, hide the webview
+                    if is_fullscreen {
+                        let _ = wv.set_size(LogicalSize::new(0.0, 0.0));
+                        let _ = wv.set_position(LogicalPosition::new(-1000.0, -1000.0));
+                    }
                 }
                 None => {
-                    // skip creating main1 if it has no URL (keeps the Svelte view)
-                    if label == "main1" && pane_urls.get(label).and_then(|v| v.as_ref()).is_none() {
-                        continue;
-                    }
+                    // Create new webview for panes that don't exist
                     let url = pane_urls
                         .get(label)
                         .and_then(|v| v.as_ref())
@@ -204,68 +303,107 @@ async fn load_workspace(app: AppHandle, layout_name: String) -> Result<(), Strin
                         .parse()
                         .unwrap_or_else(|_| "about:blank".parse().unwrap());
 
-                    let builder = WebviewBuilder::new(label, WebviewUrl::External(url))
-                        .devtools(true);
-
-                    let _ = window.add_child(
-                        builder,
-                        LogicalPosition::new(0.0, 0.0),
-                        LogicalSize::new(100.0, 100.0),
-                    );
+                    let builder = WebviewBuilder::new(label, WebviewUrl::External(url));
+                    let position = if is_fullscreen {
+                        LogicalPosition::new(-1000.0, -1000.0)
+                    } else {
+                        LogicalPosition::new(0.0, 0.0)
+                    };
+                    
+                    let size = if is_fullscreen {
+                        LogicalSize::new(0.0, 0.0)
+                    } else {
+                        LogicalSize::new(100.0, 100.0)
+                    };
+                    
+                    let _ = window.add_child(builder, position, size);
+                }
+            }
+        }
+        
+        // Apply the quadrant layout only if NOT in fullscreen mode
+        if !is_fullscreen {
+            if let Ok(sz) = window.inner_size() {
+                let width = sz.width as f64;
+                let height = sz.height as f64;
+                apply_quadrant_layout(&window, width, height);
+            }
+        } else {
+            // If in fullscreen mode, ensure svelte_app takes full window
+            if let Some(svelte_webview) = window.get_webview("svelte_app") {
+                if let Ok(size) = window.inner_size() {
+                    let width = size.width as f64;
+                    let height = size.height as f64;
+                    let _ = svelte_webview.set_position(LogicalPosition::new(0.0, 0.0));
+                    let _ = svelte_webview.set_size(LogicalSize::new(width, height));
                 }
             }
         }
 
-        // --- first layout pass ---------------------------------------
-        if let Ok(sz) = window.inner_size() {
-            let (half_w, half_h) = (sz.width as f64 / 2.0, sz.height as f64 / 2.0);
-            apply_quadrant_layout(&window, half_w, half_h);
-        }
-
-        // --- relayout on every resize/fullscreen ---------------------
+        // Set up resize handler
         let win_clone = window.clone();
         window.on_window_event(move |event| {
             if let WindowEvent::Resized(size) = event {
-                let (half_w, half_h) = (size.width as f64 / 2.0, size.height as f64 / 2.0);
-                apply_quadrant_layout(&win_clone, half_w, half_h);
+                let width = size.width as f64;
+                let height = size.height as f64;
+                
+                // Only apply normal layout if NOT in fullscreen mode
+                let is_fullscreen = APP_STATE.lock().unwrap().is_fullscreen;
+                if !is_fullscreen {
+                    apply_quadrant_layout(&win_clone, width, height);
+                } else {
+                    // In fullscreen mode, only resize the svelte_app
+                    if let Some(svelte_webview) = win_clone.get_webview("svelte_app") {
+                        let _ = svelte_webview.set_position(LogicalPosition::new(0.0, 0.0));
+                        let _ = svelte_webview.set_size(LogicalSize::new(width, height));
+                    }
+                }
             }
         });
     });
 
     Ok(())
 }
-
 fn main() {
     println!("Starting Tauri application...");
     tauri::Builder::default()
         .setup(|app| {
-            println!("   Setting up main window '{}'", OUTER_WINDOW);
-            let (w, h) = (1200.0, 800.0); // Initial window size
+            let (w, h) = (1200.0, 800.0);
             let main_window = tauri::window::WindowBuilder::new(app, OUTER_WINDOW)
                 .title("Workspaces App")
                 .inner_size(w, h)
                 .build()
-                .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?; // Ensure error type matches
-            println!("   ✅ Main window '{}' created.", OUTER_WINDOW);
+                .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
 
-            // Create initial Svelte pane (main1) filling the whole window
-            println!("   Creating initial Svelte pane (main1)...");
-            let svelte_builder = WebviewBuilder::new(
-                PANE_LABELS[0], // "main1"
-                WebviewUrl::App(Default::default()), // Loads Svelte app
-            )
-            .devtools(true); // Enable devtools for Svelte app from start
+            // Use a different label for the Svelte app (not "main1")
+            let svelte_builder = WebviewBuilder::new("svelte_app", WebviewUrl::App(Default::default()))
+                .auto_resize()
+                .initialization_script(r#"
+                    window.open = (url) => { window.location.href = url; };
+                    document.addEventListener('click', e => {
+                        const a = e.target.closest('a[target="_blank"]');
+                        if (a) {
+                            e.preventDefault();
+                            window.location.href = a.href;
+                        }
+                    }, true);
+                "#);
 
             main_window.add_child(
                 svelte_builder,
                 LogicalPosition::new(0.0, 0.0),
-                LogicalSize::new(w, h), // Full size
+                LogicalSize::new(w, h),
             ).map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
-            println!("   ✅ Initial Svelte pane (main1) added full-size.");
-            println!("✅ App ready — single-pane mode (Svelte on 'main1').");
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![load_workspace])
+       .invoke_handler(tauri::generate_handler![
+            load_workspace,
+            update_sidebar_width,
+            toggle_fullscreen,
+            get_all_workspaces,
+            save_workspace,
+            delete_workspace
+        ])
         .run(tauri::generate_context!())
         .expect("Error while running Tauri application");
 }

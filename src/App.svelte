@@ -1,16 +1,25 @@
 <script lang="ts">
   import Sidebar from './lib/Sidebar.svelte';
+  import type SidebarType from './lib/Sidebar.svelte';
+  import Settings from './lib/Settings.svelte';
   import { writable } from 'svelte/store';
   import { invoke } from '@tauri-apps/api/core';
-  import { onMount } from 'svelte';
   const isExpanded = writable(false);
+  const isSettings = writable(false);
   let blur = '6rem';
+  let sidebarComponent: SidebarType | null = null;
+  $: sidebarWidth = $isExpanded ? 288 : 64;
   async function openWorkspace(layoutName: string) {
     try {
       await invoke('load_workspace', { layoutName });
       console.log(`Loaded workspace: ${layoutName}`);
     } catch (error) {
       console.error('Failed to load workspace:', error);
+    }
+  }
+  function handleWorkspacesChanged() {
+    if (sidebarComponent) {
+      sidebarComponent.refreshWorkspaces();
     }
   }
 </script>
@@ -22,18 +31,22 @@
     on:mouseenter={() => ($isExpanded = true)}
     on:mouseleave={() => ($isExpanded = false)}
   >
-    <Sidebar isExpanded={$isExpanded} CreateWorkspacefunc={openWorkspace} />
+    <Sidebar
+      bind:this={sidebarComponent}
+      isExpanded={$isExpanded}
+      CreateWorkspacefunc={openWorkspace}
+      on:settingsChange={(e) => ($isSettings = e.detail)}
+    />
   </div>
   <div
     class="absolute inset-0 -z-10 opacity-50"
     style="background-image: url('/background.webp'); background-size: cover; background-position: center; filter: blur(100px);"
   ></div>
   <div
-    class="flex h-screen w-full transition-all duration-300 ease-in-out"
-    class:ml-72={$isExpanded}
-    class:ml-18={!$isExpanded}
+    class="flex h-screen w-full transition-all duration-0 ease-in"
+    style="margin-left: {sidebarWidth}px"
   >
-    <div class="mx-auto flex h-screen w-3/4 flex-col items-center justify-center text-center">
+    <div class="mx-auto flex h-screen w-full flex-col items-center justify-center text-center">
       <div
         class="absolute -bottom-[30%] z-0 mx-auto h-1/2 w-1/2 animate-blob rounded-full bg-fuchsia-500 opacity-40 mix-blend-multiply"
         style="filter: blur({blur}); animation-delay: 1s;"
@@ -58,10 +71,21 @@
         class="absolute left-[0%] z-0 my-auto h-3/4 w-1/2 animate-blob rounded-full bg-purple-400 opacity-30 mix-blend-multiply"
         style="filter: blur({blur}); animation-delay: 0.5s;"
       ></div>
-      <div class="z-10">
-        <h1 class="text-5xl font-bold text-white">Grid Lab</h1>
-        <h2 class="mt-3 text-xl text-white">Select an environment from the left to begin</h2>
-      </div>
+      {#if $isSettings}
+        <div class="z-10 flex h-full w-full items-center justify-center">
+          <div
+            class="m-10 rounded-lg bg-neutral-50 opacity-70 shadow-lg backdrop-blur-lg"
+            style="width: calc(100%); height: calc(100% - 3rem);"
+          >
+            <Settings on:workspacesChanged={handleWorkspacesChanged} />
+          </div>
+        </div>
+      {:else}
+        <div class="z-10 w-3/4">
+          <h1 class="text-5xl font-bold text-white">Grid Lab</h1>
+          <h2 class="mt-3 text-xl text-white">Select an environment from the left to begin</h2>
+        </div>
+      {/if}
     </div>
   </div>
 </div>

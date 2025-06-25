@@ -1,21 +1,7 @@
 {
-  "Swedish Layout": {
-    "main1": {
-      "url": null
-    },
-    "main2": {
-      "url": "https://app.haldor.se/"
-    },
-    "main3": {
-      "url": "https://www.microsoft.com/sv-se/microsoft-teams/log-in?market=se"
-    },
-    "main4": {
-      "url": "https://svenska.se/"
-    }
-  },
   "Math Layout": {
     "main1": {
-      "url": null
+      "url": "https://app.haldor.se/"
     },
     "main2": {
       "url": "https://nokportalen.se/"
@@ -29,7 +15,7 @@
   },
   "Programming Layout": {
     "main1": {
-      "url": null
+      "url": "https://app.haldor.se/"
     },
     "main2": {
       "url": "https://github.com/"
@@ -39,6 +25,20 @@
     },
     "main4": {
       "url": "https://www.w3schools.com/"
+    }
+  },
+  "Swedish Layout": {
+    "main1": {
+      "url": "https://word.cloud.microsoft/en-us/"
+    },
+    "main2": {
+      "url": "https://app.haldor.se/"
+    },
+    "main3": {
+      "url": "https://teams.microsoft.com/v2/"
+    },
+    "main4": {
+      "url": "https://svenska.se/"
     }
   }
 }
