@@ -27,18 +27,18 @@
       "url": "https://www.w3schools.com/"
     }
   },
-  "Swedish Layout": {
+  "blank": {
     "main1": {
-      "url": "https://word.cloud.microsoft/en-us/"
+      "url": "https://app.haldor.se/"
     },
     "main2": {
       "url": "https://app.haldor.se/"
     },
     "main3": {
-      "url": "https://teams.microsoft.com/v2/"
+      "url": "https://app.haldor.se/"
     },
     "main4": {
-      "url": "https://svenska.se/"
+      "url": "https://app.haldor.se/"
     }
   }
 }
