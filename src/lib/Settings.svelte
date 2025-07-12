@@ -194,24 +194,23 @@
       {/if}
 
       {#if currentConfig}
-        <div class="grid grid-cols-2 gap-6 w-full h-[80%] mt-8">
-      {#each ['main1', 'main2', 'main3', 'main4'] as pane}
-      <div class="rounded-lg border p-4 bg-pink-200 shadow">  <!-- kan någon cooling byta färgen till något-->
-        <label for={`url-${pane}`} class="block mb-2 font-semibold">URL for {pane}</label>
-          <input
-            id={`url-${pane}`}
-            class="w-full rounded border p-2"
-            value={currentConfig[pane].url}
-            on:input={(e) => {
-              const target = e.target as HTMLInputElement | null;
-              if (target) handleUrlChange(pane, target.value);
-            }}
-            placeholder="example.com (https:// will be added automatically)"
-        />
-        </div>
-        {/each}
-
-
+        <div class="mt-8 grid h-[30%] w-full grid-cols-2 gap-6">
+          {#each ['main1', 'main2', 'main3', 'main4'] as pane}
+            <div class="rounded-lg border bg-white p-4 shadow-2xl shadow-gray-200">
+              <!-- kan någon cooling byta färgen till något-->
+              <label for={`url-${pane}`} class="mb-2 block font-semibold">URL for {pane}</label>
+              <input
+                id={`url-${pane}`}
+                class="shadow-xs w-full rounded border border-gray-200 p-2"
+                value={currentConfig[pane].url}
+                on:input={(e) => {
+                  const target = e.target as HTMLInputElement | null;
+                  if (target) handleUrlChange(pane, target.value);
+                }}
+                placeholder="example.com (https:// will be added automatically)"
+              />
+            </div>
+          {/each}
 
           <div class="mb-auto flex">
             <button
@@ -224,7 +223,7 @@
             </button>
 
             <button
-              class="flex items-center rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600 ml-3"
+              class="ml-3 flex items-center rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600"
               on:click={saveWorkspace}
             >
               <Save size={18} class="mr-2" />

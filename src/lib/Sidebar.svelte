@@ -1,10 +1,7 @@
 <script lang="ts">
-  import { LayoutDashboard, Plus, Settings as SettingsIcon } from '@lucide/svelte';
+  import { LayoutDashboard, Settings as SettingsIcon, House, SquarePen } from '@lucide/svelte';
   import { invoke } from '@tauri-apps/api/core';
   import { createEventDispatcher, onMount } from 'svelte';
-
-  import editIcon from '../images/edit.png'; 
-  import homeIcon from '../images/home.png'; 
 
   export let isExpanded = false;
   export let CreateWorkspacefunc: (name: string) => void;
@@ -52,8 +49,8 @@
     }
   }
 
-  async function setFullscreen(fullscreenValue: boolean) {
-    dispatch('settingsChange', fullscreenValue);
+  async function setFullscreen(fullscreenValue: boolean, settingsValue: boolean) {
+    dispatch('settingsChange', settingsValue);
     try {
       await invoke('toggle_fullscreen', { fullscreen: fullscreenValue });
       console.log(`Toggled fullscreen: ${fullscreenValue}`);
@@ -64,23 +61,17 @@
 </script>
 
 <div
-  class="flex h-full flex-col items-center bg-neutral-50 p-3 shadow-xl transition-width duration-200 ease-in-out"
+  class="transition-width flex h-full flex-col items-center bg-neutral-50 p-3 shadow-xl duration-200 ease-in-out"
   style="width: {isExpanded ? 288 : 64}px; box-shadow: inset 0 0 0 0.2px black;"
 >
   <!-- Optional top Settings button that reloads the app -->
   <button
-    
-  class="mt-4 flex h-10 w-full items-center rounded hover:bg-gray-100"
+    class="mt-4 flex h-10 w-full items-center rounded hover:bg-gray-100"
     on:click={() => {
-      setFullscreen(true);
-      window.location.reload();
+      setFullscreen(true, false);
     }}
   >
-    <img
-      src={homeIcon}
-      alt="Edit Icon"
-      class={`w-6 h-6 ${isExpanded ? 'mx-4' : 'mx-auto'}`}
-    />
+    <House class={`h-6 w-6 ${isExpanded ? 'mx-4' : 'mx-auto'}`} />
     <div class={`overflow-hidden ${isExpanded ? 'w-auto' : 'w-0'}`}>
       <div class="whitespace-nowrap text-[1rem]">Home</div>
     </div>
@@ -97,7 +88,7 @@
         class="flex h-10 w-full items-center rounded hover:bg-gray-100"
         on:click={() => {
           CreateWorkspacefunc(workspace);
-          setFullscreen(false);
+          setFullscreen(false, false);
         }}
       >
         <LayoutDashboard size="24" class={isExpanded ? 'mx-4' : 'mx-auto'} />
@@ -110,13 +101,9 @@
 
   <button
     class="mt-4 flex h-10 w-full items-center rounded hover:bg-gray-100"
-    on:click={() => setFullscreen(true)}
+    on:click={() => setFullscreen(true, true)}
   >
-    <img
-      src={editIcon}
-      alt="Edit Icon"
-      class={`w-6 h-6 ${isExpanded ? 'mx-4' : 'mx-auto'}`}
-    />
+    <SquarePen class={`h-6 w-6 ${isExpanded ? 'mx-4' : 'mx-auto'}`} />
     <div class={`overflow-hidden ${isExpanded ? 'w-auto' : 'w-0'}`}>
       <div class="whitespace-nowrap text-[1rem]">Settings</div>
     </div>
