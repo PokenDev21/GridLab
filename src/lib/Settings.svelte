@@ -152,7 +152,7 @@
       <div class="mb-4 flex items-center justify-between">
         <h2 class="text-xl font-semibold">Workspaces</h2>
         <button
-          class="rounded-full bg-gray-900 p-2 text-white hover:bg-gray-700"
+          class="rounded-full bg-gray-900 p-2 text-white hover:bg-slate-600"
           on:click={startNewWorkspace}
         >
           <Plus size={16} />
@@ -162,7 +162,7 @@
       <div class="space-y-2">
         {#each Object.keys(workspaces) as name}
           <button
-            class="w-full rounded p-2 text-left hover:bg-gray-100 {selectedWorkspace === name
+            class="w-full rounded p-2 text-left hover:bg-slate-200 {selectedWorkspace === name
               ? 'bg-gray-200'
               : ''}"
             on:click={() => selectWorkspace(name)}
@@ -194,26 +194,25 @@
       {/if}
 
       {#if currentConfig}
-        <div class="space-y-6">
+        <div class="mt-8 grid h-[30%] w-full grid-cols-2 gap-6">
           {#each ['main1', 'main2', 'main3', 'main4'] as pane}
-            <div class="rounded-lg border p-4">
-              <h3 class="mb-3 text-lg font-medium">Pane {pane.replace('main', '')}</h3>
-              <div>
-                <input
-                  id={`url-${pane}`}
-                  class="w-full rounded border p-2"
-                  value={currentConfig[pane].url}
-                  on:input={(e) => {
-                    const target = e.target as HTMLInputElement | null;
-                    if (target) handleUrlChange(pane, target.value);
-                  }}
-                  placeholder="example.com (https:// will be added automatically)"
-                />
-              </div>
+            <div class="rounded-lg border bg-white p-4 shadow-2xl shadow-gray-200">
+              <!-- kan någon cooling byta färgen till något-->
+              <label for={`url-${pane}`} class="mb-2 block font-semibold">URL for {pane}</label>
+              <input
+                id={`url-${pane}`}
+                class="shadow-xs w-full rounded border border-gray-200 p-2"
+                value={currentConfig[pane].url}
+                on:input={(e) => {
+                  const target = e.target as HTMLInputElement | null;
+                  if (target) handleUrlChange(pane, target.value);
+                }}
+                placeholder="example.com (https:// will be added automatically)"
+              />
             </div>
           {/each}
 
-          <div class="mb-auto flex justify-between pt-4">
+          <div class="mb-auto flex">
             <button
               class="flex items-center rounded bg-red-500 px-4 py-2 text-white hover:bg-red-600"
               on:click={deleteWorkspace}
@@ -224,7 +223,7 @@
             </button>
 
             <button
-              class="flex items-center rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600"
+              class="ml-3 flex items-center rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600"
               on:click={saveWorkspace}
             >
               <Save size={18} class="mr-2" />
